@@ -30,4 +30,4 @@ NODE_CLASS_MAPPINGS = {
     "sizing_node": sizing_node,
 }
 
-print('\033[34mFizzleDorf Custom Nodes: \033[92mLoaded\033[0m')
+print('\033[34mSer-Hilary Custom Nodes: \033[92mLoaded\033[0m')
