@@ -1,4 +1,3 @@
-# Made by Davemane42#0042 for ComfyUI
 import os
 import subprocess
 import importlib.util
@@ -25,7 +24,7 @@ def is_installed(package, package_overwrite=None):
         if result.returncode != 0:
             print(f"Couldn't install\nCommand: {command}\nError code: {result.returncode}")
 
-from .conditioning_sizing_for_SDXL import sizing_node, 
+from .conditioning_sizing_for_SDXL import sizing_node
 
 NODE_CLASS_MAPPINGS = {
     "sizing_node": sizing_node,
