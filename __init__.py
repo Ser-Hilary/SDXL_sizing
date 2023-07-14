@@ -25,25 +25,10 @@ def is_installed(package, package_overwrite=None):
         if result.returncode != 0:
             print(f"Couldn't install\nCommand: {command}\nError code: {result.returncode}")
 
-from .WaveNodes import Lerp, SinWave, InvSinWave, CosWave, InvCosWave, SquareWave, SawtoothWave, TriangleWave, AbsCosWave, AbsSinWave
-from .ScheduledNodes import ValueSchedule, PromptSchedule, PromptScheduleNodeFlow, PromptScheduleNodeFlowEnd #, PromptScheduleGLIGEN
+from .conditioning_sizing_for_SDXL import sizing_node, 
 
 NODE_CLASS_MAPPINGS = {
-    "Lerp": Lerp,
-    "SinWave": SinWave,
-    "InvSinWave": InvSinWave,
-    "CosWave": CosWave,
-    "InvCosWave": InvCosWave,
-    "SquareWave":SquareWave,
-    "SawtoothWave": SawtoothWave,
-    "TriangleWave": TriangleWave,
-    "AbsCosWave": AbsCosWave,
-    "AbsSinWave": AbsSinWave,
-    "PromptSchedule": PromptSchedule,
-    "ValueSchedule": ValueSchedule,
-    "PromptScheduleNodeFlow": PromptScheduleNodeFlow,
-    "PromptScheduleNodeFlowEnd": PromptScheduleNodeFlowEnd,
-    #"PromptScheduleGLIGEN": PromptScheduleGLIGEN,
+    "sizing_node": sizing_node,
 }
 
 print('\033[34mFizzleDorf Custom Nodes: \033[92mLoaded\033[0m')
