@@ -61,7 +61,8 @@ class sizing_node:
                     "min": 0.0,
                     "step": 0.001
                 }),
-                "verbose": (["disabled", "basic", "full"],)
+                "verbose": (["disabled", "basic", "full"],),
+                "fit_aspect_to_bucket": (["disabled", "enabled"],)
             }
         }
 
@@ -132,7 +133,7 @@ class sizing_node:
                 return (i, int(round(i/decimal)))
 
 
-    def get_sizes(self, native_res, aspect, original_res, crop_extra, downscale_effect, verbose):
+    def get_sizes(self, native_res, aspect, original_res, crop_extra, downscale_effect, verbose, fit_aspect_to_bucket):
 
         # initialize the verbose variables for reporting
         v_aspect = None
@@ -172,7 +173,8 @@ class sizing_node:
         target_width = self.make_64(c * aspect)
         target_height = self.make_64(c)
 
-        aspect = target_width/target_height   # adjust aspect to match these multiples of 64
+        if fit_aspect_to_bucket == "enabled":
+            aspect = target_width/target_height   # adjust aspect to match these multiples of 64
 
 
         # parse the original resolution input -> width, height
