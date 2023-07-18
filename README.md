@@ -39,6 +39,8 @@ these are all correct ways of getting a 1:2 aspect ratio:
 - "0.5"  
 - "1 by 2"
 
+you can also enter -1 to get the aspect from the original resolution, if it is given as two dimensions.
+
 **"original_res"**  
 - "600" - returns 600 on the long side, and the short side is calculated to match the aspect ratio.  
 - "600x600" - returns 600 by 600, and crop_w and crop_h are calculated accordingly if this doesn't match the aspect ratio of the image resolution.  
