@@ -47,6 +47,15 @@ you can also enter -1 to get the aspect from the original resolution, if it is g
 - "2.0" - returns dimensions double those of the generation. So if you're generating at 1024x1024, this will return 2048x2048.
 
 
+### The other inputs?
+
+*downscale_effect* determines how much to adjust the "downscale" output to match the 'original resolution' (minus cropping). At 1.0 it matches it exactly, at 0.5 it's midway between that and your gen size, etc.
+
+*verbose* enables reporting on the outputs in the console so you can see what it's doing. Full gives a fuller explanation, basic just gives the outputs.
+
+*fit_aspect_to_bucket* adjusts your aspect ratio after determining the bucketed resolution to match that resolution so that crop_w and crop_h should end up either 0 or very nearly 0.
+
+
 ### Postscript
 
 If any of this is flat-out wrong, if I've misread the docs or just typed something in wrong or terribly misused Python in some basic way, please let me know. I've used this a bit with a little 'verbose' node to tell me what numbers I'm putting into my prompt encoder node, so I'm pretty sure it's working for what I'm doing at least, but it might be broken in some way I haven't tested, or I might be missing something when I look at the numbers.
