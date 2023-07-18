@@ -164,9 +164,16 @@ class sizing_node:
         if isinstance(aspect, tuple):
             if v: v_aspect = aspect
             aspect = aspect[0]/aspect[1]
-        elif v:
+        elif aspect == -1 and isinstance(aspect, int):
+            if isinstance(original_res, tuple):
+                aspect = original_res[0]/original_res[1]
+            else:
+                aspect = 1.0
+        elif aspect <= 0:
+            aspect = 1.0
+        
+        if v:
             v_aspect = self.find_fraction(aspect)
-
 
         # match the buckets
         c = (native_res**2 / aspect)**(1/2)
