@@ -283,7 +283,7 @@ class sizing_node:
         if v: v_crops_extra = (int(target_width*(crop_extra))//2, int(target_height*(crop_extra))//2)
 
         if v: v_downscale = (downscale,)
-        downscale = 1 - ((1 - downscale) * downscale_effect)
+        downscale = min(1 - ((1 - downscale) * downscale_effect), 1.0) # don't output for upscaling, since that should be handled in a different way.
         if v: 
             v_downscale += (downscale,)
 

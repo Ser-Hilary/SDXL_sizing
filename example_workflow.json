@@ -45,10 +45,10 @@
         500,
         470
       ],
-      "size": [
-        336.63046875,
-        140.48258323669427
-      ],
+      "size": {
+        "0": 336.6304626464844,
+        "1": 140.4825897216797
+      },
       "flags": {},
       "order": 0,
       "mode": 0,
@@ -85,10 +85,10 @@
         1150,
         380
       ],
-      "size": [
-        220,
-        249.58259277343745
-      ],
+      "size": {
+        "0": 220,
+        "1": 249.5825958251953
+      },
       "flags": {},
       "order": 9,
       "mode": 0,
@@ -257,10 +257,10 @@
         1150,
         680
       ],
-      "size": [
-        210,
-        76.00002193450928
-      ],
+      "size": {
+        "0": 210,
+        "1": 76.0000228881836
+      },
       "flags": {},
       "order": 10,
       "mode": 0,
@@ -297,10 +297,10 @@
         1150,
         800
       ],
-      "size": [
-        217.93045654296873,
-        116.58259315490704
-      ],
+      "size": {
+        "0": 217.93045043945312,
+        "1": 116.58259582519531
+      },
       "flags": {},
       "order": 7,
       "mode": 0,
@@ -495,10 +495,10 @@
         2140,
         370
       ],
-      "size": [
-        315,
-        82
-      ],
+      "size": {
+        "0": 315,
+        "1": 82
+      },
       "flags": {},
       "order": 16,
       "mode": 0,
@@ -715,10 +715,10 @@
         2490,
         370
       ],
-      "size": [
-        461.9278564453125,
-        526.5201721191406
-      ],
+      "size": {
+        "0": 461.9278564453125,
+        "1": 526.5201416015625
+      },
       "flags": {},
       "order": 17,
       "mode": 0,
@@ -814,10 +814,10 @@
         168,
         498
       ],
-      "size": [
-        310.66934326171884,
-        375.2522863769532
-      ],
+      "size": {
+        "0": 310.6693420410156,
+        "1": 375.2522888183594
+      },
       "flags": {
         "pinned": false
       },
@@ -827,7 +827,7 @@
         "text": ""
       },
       "widgets_values": [
-        "native res: set to 1024 for SDXL. Can be set to e.g. 640 or 768 for some bucketed SD2.1 and SD1.5 models.\n\naspect: set to -1 in this case to match the aspect of the original_res.\n\noriginal_res: set to \"850x600\", meaning the \"original image\" (an inference into the training dataset) has a width and height of 850x600. This, like the prompt, tells SDXL what kind of image to create.\n\ncrop_extra: set here to 10%. This means the \"original image\" would have been upscaled beyond the training size and then cropped to 90% of the original. This influences the composition and style of the resulting image. It also affects the downscale output.\n\ndownscale: this output connects to our upscale node and gives it a scalar to downsize the approx. 1024² image to match the dimensions of the \"original\" image. In this case the result will be 765x523: the original_res minus cropping.\n\nYou should disconnect the downscale output if you are using an original_res greater than your generation size. "
+        "native res: set to 1024 for SDXL. Can be set to e.g. 640 or 768 for some bucketed SD2.1 and SD1.5 models.\n\naspect: set to -1 in this case to match the aspect of the original_res.\n\noriginal_res: set to \"850x600\", meaning the \"original image\" (an inference into the training dataset) has a width and height of 850x600. This, like the prompt, tells SDXL what kind of image to create.\n\ncrop_extra: set here to 10%. This means the \"original image\" would have been upscaled beyond the training size and then cropped to 90% of the original. This influences the composition and style of the resulting image. It also affects the downscale output.\n\ndownscale: this output connects to our upscale node and gives it a scalar to downsize the approx. 1024² image to match the dimensions of the \"original\" image. In this case the result will be 765x523: the original_res minus cropping.\n\nThe downscale output will not exceed 1.0, so you can leave it connected with larger original_res values."
       ],
       "color": "#432",
       "bgcolor": "#653"
@@ -875,10 +875,10 @@
         1510,
         370
       ],
-      "size": [
-        281.66546691894473,
-        262
-      ],
+      "size": {
+        "0": 281.66546630859375,
+        "1": 262
+      },
       "flags": {},
       "order": 13,
       "mode": 0,
