@@ -8,11 +8,13 @@ Don't fuss about the downscale thing, it's optional.
 
 ### What it does, for the layman
 
-After rereading the paragraphs that follow I realize I might not have been really clear about what makes this useful. So SDXL takes six new inputs for its prompt conditioning, or three * two dimensions (width and height), plus there's the two you already had—the width and height you generate at. These are all a bit funny to figure out yourself. You could look through the list of bucketed resolutions for training, but they're basically just a series of resolutions where the width and height are multiples of 64, they multiply together to something close to 1024², and their aspect ratio is between 1:4 and 4:1. Instead of memorizing these, you can just input "1024" and any aspect ratio you like in this widget and you'll get the closest one that fits that description. (You can exceed 4:1, however, if you really want to...)
+If you're wondering _Why shouldn't I just set my width, height, etc, to 4096? That's what they said to do on Reddit,_ then I'm not going to try to change your mind. I would recommend reading the [SDXL Report](https://github.com/Stability-AI/generative-models/blob/main/assets/sdxl_report.pdf), specifically the section where they talk about the new conditioning parameters. But this node was made primarily for people who already know why they might want to put a different value into those fields.
 
-And then there's the cropping. I don't know exactly how StabilityAI did their cropping, but I know that if you have an original image dimension and a training dimension after scaling, the amount cropped from one dimension will be rigidly determined by the difference between the scaled image and the training dimensions. And I checked their documentation to be sure that they get this number 1. after scaling to the training dimensions, and 2. from the left edge and the top edge only, so that seemed like enough to figure out what these numbers should be. So this widget figures that out and gives it as your crop_w and crop_h outputs. Optionally you can add more cropping, if that's something you want.
+SDXL takes six new inputs for its prompt conditioning, or three * two dimensions (width and height); plus there's the two you already had—the width and height you generate at. These are all a bit funny to figure out yourself. You could keep a copy of StabilityAI's list of bucketed resolutions for training and use this to get your latent generator sizes, but they're basically just a series of resolutions where the width and height are multiples of 64, they multiply together to something close to 1024², and their aspect ratio is between 1:4 and 4:1. Instead of memorizing these, with this widget you can just input "1024" and any aspect ratio you like, and you'll get the closest one that fits that description. (You can exceed 4:1, however, if you really want to...)
 
-So with three inputs, one of which doesn't change much (_native_res_), you can get all your relevant sizing numbers: width, height, crop_w, crop_h, target_width, target_height, and the width and height of your empty latent generator. I think that's simpler.
+And then there's the cropping. If you have an original image dimension and a training dimension after scaling, the amount cropped from one dimension will be rigidly determined by the difference between the scaled image and the training dimensions. And I checked their documentation to be sure that they get this number 1. _after_ scaling to the training dimensions, and 2. from the left edge and the top edge only, so that seemed like enough information to determine what these numbers should be. So this widget figures that out and gives it as your crop_w and crop_h outputs. Optionally you can add more cropping with _cropping_extra_, if that's something you want. (Sometimes it is.)
+
+So with three inputs, one of which doesn't usually need to change (_native_res_), you can get all your relevant sizing numbers: width, height, crop_w, crop_h, target_width, target_height, and the width and height of your empty latent generator. I think that's simpler.
 
 If you're not sure what these conditioning inputs do they're explained here (with the exception of target_width/target_height):  
 https://github.com/Stability-AI/generative-models/blob/main/assets/sdxl_report.pdf
@@ -21,7 +23,7 @@ https://github.com/Stability-AI/generative-models/blob/main/assets/sdxl_report.p
 
 This node takes native resolution, aspect ratio, and original resolution. It uses these to calculate and output the generation dimensions in an appropriate bucketed resolution with 64-multiples for each side (which double as the target_height/\_width), the resolution for the **width** and **height** conditioning inputs (representing a hypothetical "original" image in the training data), and the **crop_w** and **crop_h** conditioning inputs, which are determined by the difference between the model resolution and the upscaled/downscaled training image along that dimension (and divided by two). The downscale output can optionally be connected to an "upscale by" node to automatically downscale gens to match the "original size" set in this node. (Most don't like downscaling, this was for my own use.) Set to 0.0 or just don't connect the output to anything if you don't want downscaling.
 
-**crop_extra** just adds a fraction of the image size to the crop inputs. Leave at 0.0 unless you want to experiment with SDXL's ability to reproduce cropped images.
+**crop_extra** just adds a fraction of the image size to the crop inputs. Leave at 0.0 unless you want to experiment with SDXL's ability to reproduce cropped images. crop_extra will affect the downscale output, because it suggests a smaller resulting image (e.g. a 1024x1024 image cropped by 50% should yield a 512x512 image)
 
 The input fields accept different kinds of string inputs to produce different results:
 
@@ -30,7 +32,7 @@ The input fields accept different kinds of string inputs to produce different re
 - "100" - returns 100  
 - "100.0" - returns 100
 
-(this should generally be left at 1024 for SDXL.)  
+(this should generally be left at **1024** for SDXL.)  
 
 **"aspect"**  
 these are all correct ways of getting a 1:2 aspect ratio:
@@ -39,22 +41,23 @@ these are all correct ways of getting a 1:2 aspect ratio:
 - "0.5"  
 - "1 by 2"
 
-you can also enter -1 to get the aspect from the original resolution, if it is given as two dimensions.
+you can also enter -1 to get the aspect from the original resolution, if it is given as two dimensions. e.g. "1920x1080" for _original_resolution_ and "-1" for _aspect_ would give an aspect ratio of 16/9, or ~1.78
 
 **"original_res"**  
 - "600" - returns 600 on the long side, and the short side is calculated to match the aspect ratio.  
-- "600x600" - returns 600 by 600, and crop_w and crop_h are calculated accordingly if this doesn't match the aspect ratio of the image resolution.  
-- "2.0" - returns dimensions double those of the generation. So if you're generating at 1024x1024, this will return 2048x2048.
+- "600x600" - returns 600 by 600, and crop_w and crop_h are calculated accordingly if this doesn't match the aspect ratio of the image resolution. (This can result in large crop values.)
+- "2.0" - returns dimensions double those of the generation. e.g. if you're generating at 1024x1024, this will return 2048x2048. 
 
 
 ### The other inputs?
 
-*downscale_effect* determines how much to adjust the "downscale" output to match the 'original resolution' (minus cropping). At 1.0 it matches it exactly, at 0.5 it's midway between that and your gen size, etc.
+**downscale_effect** determines how much to adjust the "downscale" output to match the 'original resolution' (minus cropping). At 1.0 it matches original resolution exactly (minus cropping), at 0.5 it's midway between that and your gen size, etc.
 
-*verbose* enables reporting on the outputs in the console so you can see what it's doing. Full gives a fuller explanation, basic just gives the outputs.
+**verbose** enables reporting on the outputs in the console so you can see what it's doing. Full gives a fuller explanation, basic just gives the outputs.
 
-*fit_aspect_to_bucket* adjusts your aspect ratio after determining the bucketed resolution to match that resolution so that crop_w and crop_h should end up either 0 or very nearly 0.
+**fit_aspect_to_bucket** adjusts your aspect ratio after determining the bucketed resolution to match that resolution so that crop_w and crop_h should end up either 0 or very nearly 0.
 
+**strict_bucketing** matches your gen size to one of the bucket sizes explicitly given in the SDXL report. Most inputs will match one of these buckets anyway, because of how this node calculates the dimensions for the latent. But there are a few sizes that my node will output which aren't explicitly listed as bucketed training resolutions, so in those cases this will shift the result to a nearby bucketed resolution. 
 
 ### Postscript
 
