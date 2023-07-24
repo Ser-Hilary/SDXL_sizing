@@ -61,6 +61,6 @@ you can also enter -1 to get the aspect from the original resolution, if it is g
 
 ### Postscript
 
-If any of this is flat-out wrong, if I've misread the docs or just typed something in wrong or terribly misused Python in some basic way, please let me know. I've used this a bit with a little 'verbose' node to tell me what numbers I'm putting into my prompt encoder node, so I'm pretty sure it's working for what I'm doing at least, but it might be broken in some way I haven't tested, or I might be missing something when I look at the numbers.
+If any of this is flat-out wrong, if I've misread the docs or just typed something in wrong or terribly misused Python in some basic way, please let me know. I've used this for a while with the verbose reporting turned on to check my numbers, so I'm pretty sure it's working for what I'm doing at least, but it might be broken in some way I haven't tested, or I might be missing something by not looking closely enough.
 
 Also, thanks to the anon who informed me straight away that this didn't work when I uploaded it and made me figure out the whole \_\_init\_\_.py thing (only to then write a better, fuller one himself). 
