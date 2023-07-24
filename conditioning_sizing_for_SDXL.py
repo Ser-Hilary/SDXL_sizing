@@ -31,7 +31,9 @@ class sizing_node:
             - "2.0" - returns dimensions double those of the generation. So if you're generating at 1024x1024,
                 this will return 2048x2048.
     '''
-
+    w_to_h = {1600: [640], 896: [1088, 1152], 1536: [640], 832: [1152, 1216], 1472: [704], 1408: [704], 768: [1280, 1344], 704: [1344, 1408, 1472], 1344: [768], 1280: [768], 640: [1536, 1600], 1216: [832], 2048: [512], 1984: [512], 1152: [832, 896], 1920: [512], 1856: [512], 576: [1664, 1728, 1792], 1088: [896, 960], 1024: [960, 1024], 512: [1856, 1920, 1984, 2048], 1792: [576], 960: [1024, 1088], 1728: [576], 1664: [576]}
+    h_to_w = {640: [1600, 1536], 1088: [896, 960], 1152: [896, 832], 1216: [832], 704: [1472, 1408], 1280: [768], 1344: [768, 704], 1408: [704], 1472: [704], 768: [1344, 1280], 1536: [640], 1600: [640], 832: [1216, 1152], 512: [2048, 1984, 1920, 1856], 896: [1152, 1088], 1664: [576], 1728: [576], 1792: [576], 960: [1088, 1024], 1024: [1024, 960], 1856: [512], 1920: [512], 1984: [512], 2048: [512], 576: [1792, 1728, 1664]}
+    # exact buckets from the SDXL training report as quickly searchable dictionaries.
     
     @classmethod
     def INPUT_TYPES(s):
@@ -60,14 +62,19 @@ class sizing_node:
                     "max": 1.0,
                     "min": 0.0,
                     "step": 0.001
-                }),
+                })
+                
+            },
+            "optional":{
                 "verbose": (["disabled", "basic", "full"],),
-                "fit_aspect_to_bucket": (["disabled", "enabled"],)
+                "fit_aspect_to_bucket": (["disabled", "enabled"],),
+                "strict_bucketing": (["enabled", "disabled"],)
+
             }
         }
 
     RETURN_TYPES = ("INT", "INT", "INT", "INT", "INT", "INT", "FLOAT")   
-    RETURN_NAMES = ("width", "height", "target_width", "target_height", "crop_w", "crop_h", "downscale")
+    RETURN_NAMES = ("width", "height", "crop_w", "crop_h", "target_width", "target_height", "downscale")
 
     FUNCTION = "get_sizes"
 
@@ -133,7 +140,47 @@ class sizing_node:
                 return (i, int(round(i/decimal)))
 
 
-    def get_sizes(self, native_res, aspect, original_res, crop_extra, downscale_effect, verbose, fit_aspect_to_bucket):
+    def match_buckets(self, target_width, target_height, prefer, verbose = False):
+        
+        if target_height in self.w_to_h[target_width]:
+            if verbose: print(f"\nsizing_node: calculated resolution of {target_width}x{target_height} matches original training buckets. (strict_bucketing)")
+            return (target_width, target_height)
+
+        islow = False
+
+        if min(target_height, *self.w_to_h[target_width]) == target_height: islow = True
+
+
+
+        if target_width % 64 == 0 and target_height % 64 == 0:
+
+            # arbitrarily large/small numbers added in case there is only one number in the list, which min/max would not accept as iterable.
+
+            if prefer == "widen aspect":
+                if islow:
+                    rheight = target_height
+                    rwidth = min(*self.h_to_w[target_height], 20000)
+                else:
+                    rwidth = target_width
+                    rheight = max(*self.w_to_h[target_width], 0)
+            else:
+                if islow:
+                    rwidth = target_width
+                    rheight = min(*self.w_to_h[target_width], 20000)
+                else:
+                    rwidth = max(*self.h_to_w[target_height], 0)
+                    rheight = target_height
+
+
+        else:
+            raise ValueError(f"Dimensions of {target_width}, {target_height} are not divisible by 64.")
+
+        if verbose: print(f"\nsizing_node: calculated resolution of {target_width}x{target_height} not found in original training buckets. (strict_bucketing)\nAdjusted to {rwidth}x{rheight}.")
+
+        return (rwidth, rheight)
+
+
+    def get_sizes(self, native_res, aspect, original_res, crop_extra = 0.0, downscale_effect = 1.0, verbose = "disabled", fit_aspect_to_bucket = "disabled", strict_bucketing = "enabled"):
 
         # initialize the verbose variables for reporting
         v_aspect = None
@@ -142,6 +189,9 @@ class sizing_node:
         v_postscale = None
         v_downscale = None
         v = verbose == "full"
+        bucket = False
+        if strict_bucketing == "enabled":
+            bucket = True
 
 
         # turn these string inputs into tuples, ints, or floats
@@ -171,6 +221,13 @@ class sizing_node:
                 aspect = 1.0
         elif aspect <= 0:
             aspect = 1.0
+
+        if not 4.0 >= aspect >= 0.25:
+            bucket = False
+            if v: print("\nsizing_node: No actual training bucket for this aspect ratio. Exact bucketing disabled.")
+        elif native_res != 1024:
+            bucket = False
+            if v: print("\nsizing_node: strict_bucketing disabled (native_res != 1024)")
         
         if v:
             v_aspect = self.find_fraction(aspect)
@@ -179,6 +236,10 @@ class sizing_node:
         c = (native_res**2 / aspect)**(1/2)
         target_width = self.make_64(c * aspect)
         target_height = self.make_64(c)
+
+        if bucket:
+            # fit exactly to the actual training buckets, not to a theoretical training bucket
+            target_width, target_height = self.match_buckets(target_width, target_height, prefer = "widen aspect", verbose = v)
 
         if fit_aspect_to_bucket == "enabled":
             aspect = target_width/target_height   # adjust aspect to match these multiples of 64
@@ -287,15 +348,35 @@ f'''
 
 
         #fin
-        return (width, height, target_width, target_height, crop_w, crop_h, downscale)
+        return (width, height, crop_w, crop_h, target_width, target_height, downscale)
 
 
+class sizing_node_basic(sizing_node):
 
-NODE_CLASS_MAPPINGS = {
-    "sizing_node": sizing_node
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "native_res": ("STRING", {
+                    "multiline": False,
+                    "default": "1024"
+                }),
+                "aspect": ("STRING", {
+                    "multiline": False,
+                    "default": "1:1"
+                }),
+                "original_res": ("STRING", {
+                    "multiline": False,
+                    "default": "1024x1024"
+                }),
+                "crop_extra": ("FLOAT", {
+                    "default": 0.0,
+                    "max": 1.0,
+                    "min": 0.0,
+                    "step": 0.001
+                })
+                
+            }
+        }
 
-}
 
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "sizing_node": "get resolutions for generation"
-}
