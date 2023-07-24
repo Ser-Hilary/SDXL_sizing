@@ -1,4 +1,6 @@
 ## Automatic Sizing for SDXL
+![example of the node in use](example.jpg)
+
 This is a little node I wrote for myself for [ComfyUI](https://github.com/comfyanonymous/ComfyUI). Just save this as a .py file in your comfyUI custom nodes folder.  
 edit: Actually, just save this repository as a folder in your custom nodes folder. Since that's what git cloning was gonna do anyway. Had to figure that one out. Writing code is *not* my day job, or even something I'm remotely competent at.
 
@@ -37,10 +39,21 @@ these are all correct ways of getting a 1:2 aspect ratio:
 - "0.5"  
 - "1 by 2"
 
+you can also enter -1 to get the aspect from the original resolution, if it is given as two dimensions.
+
 **"original_res"**  
 - "600" - returns 600 on the long side, and the short side is calculated to match the aspect ratio.  
 - "600x600" - returns 600 by 600, and crop_w and crop_h are calculated accordingly if this doesn't match the aspect ratio of the image resolution.  
 - "2.0" - returns dimensions double those of the generation. So if you're generating at 1024x1024, this will return 2048x2048.
+
+
+### The other inputs?
+
+*downscale_effect* determines how much to adjust the "downscale" output to match the 'original resolution' (minus cropping). At 1.0 it matches it exactly, at 0.5 it's midway between that and your gen size, etc.
+
+*verbose* enables reporting on the outputs in the console so you can see what it's doing. Full gives a fuller explanation, basic just gives the outputs.
+
+*fit_aspect_to_bucket* adjusts your aspect ratio after determining the bucketed resolution to match that resolution so that crop_w and crop_h should end up either 0 or very nearly 0.
 
 
 ### Postscript
