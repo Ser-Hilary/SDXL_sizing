@@ -379,4 +379,13 @@ class sizing_node_basic(sizing_node):
             }
         }
 
+# in case this gets installed as just the .py file into the custom nodes folder, I've added these to this file as well.
+NODE_CLASS_MAPPINGS = {
+    "sizing_node": sizing_node,
+    "sizing_node_basic": sizing_node_basic
 
+}
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "sizing_node": "sizing for SDXL (advanced)",
+    "sizing_node_basic": "sizing for SDXL"
+}
