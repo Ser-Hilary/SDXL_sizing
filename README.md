@@ -22,8 +22,6 @@ https://github.com/Stability-AI/generative-models/blob/main/assets/sdxl_report.p
 
 This node takes native resolution, aspect ratio, and original resolution. It uses these to calculate and output the generation dimensions in an appropriate bucketed resolution with 64-multiples for each side (which double as the target_height/\_width), the resolution for the **width** and **height** conditioning inputs (representing a hypothetical "original" image in the training data), and the **crop_w** and **crop_h** conditioning inputs, which are determined by the difference between the model resolution and the upscaled/downscaled training image along that dimension (and divided by two). The downscale output can optionally be connected to an "upscale by" node to automatically downscale gens to match the "original size" set in this node. (Most don't like downscaling, this was for my own use.) Set to 0.0 or just don't connect the output to anything if you don't want downscaling.
 
-**crop_extra** just adds a fraction of the image size to the crop inputs. Leave at 0.0 unless you want to experiment with SDXL's ability to reproduce cropped images. crop_extra will affect the downscale output, because it suggests a smaller resulting image (e.g. a 1024x1024 image cropped by 50% should yield a 512x512 image)
-
 The input fields accept different kinds of string inputs to produce different results:
 
 **"native_res"**  
@@ -49,6 +47,8 @@ you can also enter -1 to get the aspect from the original resolution, if it is g
 
 
 ### The other inputs?
+
+**extra_crop** adds some extra to the crop_w and crop_h as a proportion of the generation size. In my experience this usually looks pretty odd, if you use it at all the number should be kept low. Generally you'll leave this at 0.0. It will also increase downscaling because it makes for a smaller 'theoretical' final image size. I'm not really sure that this works all that well, but it's there if you want it.
 
 **downscale_effect** determines how much to adjust the "downscale" output to match the 'original resolution' (minus cropping). At 1.0 it matches original resolution exactly (minus cropping), at 0.5 it's midway between that and your gen size, etc.
 
