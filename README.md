@@ -56,7 +56,14 @@ you can also enter -1 to get the aspect from the original resolution, if it is g
 
 **fit_aspect_to_bucket** adjusts your aspect ratio after determining the bucketed resolution to match that resolution so that crop_w and crop_h should end up either 0 or very nearly 0.
 
-**strict_bucketing** matches your gen size to one of the bucket sizes explicitly given in the SDXL report. Most inputs will match one of these buckets anyway, because of how this node calculates the dimensions for the latent. But there are a few sizes that my node will output which aren't explicitly listed as bucketed training resolutions, so in those cases this will shift the result to a nearby bucketed resolution. 
+**strict_bucketing** matches your gen size to one of the bucket sizes explicitly given in the SDXL report (or to those recommended by the ComfyUI developer). Most inputs will match one of the buckets given in the report anyway, because of how this node calculates the dimensions for the latent. But there are a few sizes that my node will output which aren't explicitly listed as bucketed training resolutions, so in those cases this will pick a close training bucket instead.
+
+The string input at the bottom of the advanced node accepts some further arguments which are too niche to deserve a full input of their own. Some examples:
+- **--nudge w 0.8** will yield an original resolution which would have 80% of the maximum plausible cropping on the width dimension. This is for testing resolutions at the limits of plausible crop_w/crop_h values.
+- **--randomaspect** will give a randomized aspect ratio, rather than a standard one. Unfortunately this will not be randomized with each generation, I'd have to figure out how to make ComfyUI invoke the node once per batch. This optionally accepts two arguments, e.g. **--randomaspect 2x3 4x2**, for minimum and maximum. If not given it will default to 0.25 and 4.0. Inputs can be given as 1/2, 1:2, 0.5, 1x2, or 1*2.
+- **--nocrop** sets crop_w and crop_h outputs to 0. This is less work than disconnecting the crop outputs, and may be useful for A/B testing whether 'plausible' crop values produce worse images than leaving them 0.
+
+More arguments may be added in future.
 
 ### Postscript
 
