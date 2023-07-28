@@ -119,7 +119,6 @@ class sizing_node:
             return int(striptext)
 
     def getRecommendedRes(self, aspect, mode = "Report"):
-        print(f"getRecommendedRes invoked with variables {aspect} and {mode}")
         getIndex = None
         resDict = None
         if mode == "Comfy":
