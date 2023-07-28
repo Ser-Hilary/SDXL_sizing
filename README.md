@@ -7,7 +7,7 @@ Don't fuss about the downscale thing, it's optional.
 
 ### What it does, for the layman
 
-If you're wondering _Why shouldn't I just set my width, height, etc, to 4096? That's what they said to do on Reddit,_ then I'm not going to try to change your mind. I would recommend reading the [SDXL Report](https://github.com/Stability-AI/generative-models/blob/main/assets/sdxl_report.pdf), specifically the section where they talk about the new conditioning parameters. But this node was made primarily for people who already know why they might want to put a different value into those fields.
+If you're wondering _Why shouldn't I just set my width, height, etc, to 4096? That's what they said to do on Reddit,_ then I'm not going to try to change your mind. I would recommend reading the [SDXL Report](https://arxiv.org/pdf/2307.01952.pdf), specifically the section where they talk about the new conditioning parameters. But this node was made primarily for people who already know why they might want to put a different value into those fields.
 
 SDXL takes six new inputs for its prompt conditioning, or three * two dimensions (width and height); plus there's the two you already had—the width and height you generate at. These are all a bit funny to figure out yourself. You could keep a copy of StabilityAI's list of bucketed resolutions for training and use this to get your latent generator sizes, but they're basically just a series of resolutions where the width and height are multiples of 64, they multiply together to something close to 1024², and their aspect ratio is between 1:4 and 4:1. Instead of memorizing these, with this widget you can just input "1024" and any aspect ratio you like, and you'll get the closest one that fits that description. (You can exceed 4:1, however, if you really want to...)
 
@@ -16,13 +16,11 @@ And then there's the cropping. If you have an original image dimension and a tra
 So with three inputs, one of which doesn't usually need to change (_native_res_), you can get all your relevant sizing numbers: width, height, crop_w, crop_h, target_width, target_height, and the width and height of your empty latent generator. I think that's simpler.
 
 If you're not sure what these conditioning inputs do they're explained here (with the exception of target_width/target_height):  
-https://github.com/Stability-AI/generative-models/blob/main/assets/sdxl_report.pdf
+https://arxiv.org/pdf/2307.01952.pdf
 
  ### The old Readme.md
 
 This node takes native resolution, aspect ratio, and original resolution. It uses these to calculate and output the generation dimensions in an appropriate bucketed resolution with 64-multiples for each side (which double as the target_height/\_width), the resolution for the **width** and **height** conditioning inputs (representing a hypothetical "original" image in the training data), and the **crop_w** and **crop_h** conditioning inputs, which are determined by the difference between the model resolution and the upscaled/downscaled training image along that dimension (and divided by two). The downscale output can optionally be connected to an "upscale by" node to automatically downscale gens to match the "original size" set in this node. (Most don't like downscaling, this was for my own use.) Set to 0.0 or just don't connect the output to anything if you don't want downscaling.
-
-**crop_extra** just adds a fraction of the image size to the crop inputs. Leave at 0.0 unless you want to experiment with SDXL's ability to reproduce cropped images. crop_extra will affect the downscale output, because it suggests a smaller resulting image (e.g. a 1024x1024 image cropped by 50% should yield a 512x512 image)
 
 The input fields accept different kinds of string inputs to produce different results:
 
@@ -49,6 +47,8 @@ you can also enter -1 to get the aspect from the original resolution, if it is g
 
 
 ### The other inputs?
+
+**extra_crop** adds some extra to the crop_w and crop_h as a proportion of the generation size. In my experience this usually looks pretty odd, if you use it at all the number should be kept low. Generally you'll leave this at 0.0. It will also increase downscaling because it makes for a smaller 'theoretical' final image size. I'm not really sure that this works all that well, but it's there if you want it.
 
 **downscale_effect** determines how much to adjust the "downscale" output to match the 'original resolution' (minus cropping). At 1.0 it matches original resolution exactly (minus cropping), at 0.5 it's midway between that and your gen size, etc.
 
