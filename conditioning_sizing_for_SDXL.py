@@ -34,6 +34,19 @@ class sizing_node:
     w_to_h = {1600: [640], 896: [1088, 1152], 1536: [640], 832: [1152, 1216], 1472: [704], 1408: [704], 768: [1280, 1344], 704: [1344, 1408, 1472], 1344: [768], 1280: [768], 640: [1536, 1600], 1216: [832], 2048: [512], 1984: [512], 1152: [832, 896], 1920: [512], 1856: [512], 576: [1664, 1728, 1792], 1088: [896, 960], 1024: [960, 1024], 512: [1856, 1920, 1984, 2048], 1792: [576], 960: [1024, 1088], 1728: [576], 1664: [576]}
     h_to_w = {640: [1600, 1536], 1088: [896, 960], 1152: [896, 832], 1216: [832], 704: [1472, 1408], 1280: [768], 1344: [768, 704], 1408: [704], 1472: [704], 768: [1344, 1280], 1536: [640], 1600: [640], 832: [1216, 1152], 512: [2048, 1984, 1920, 1856], 896: [1152, 1088], 1664: [576], 1728: [576], 1792: [576], 960: [1088, 1024], 1024: [1024, 960], 1856: [512], 1920: [512], 1984: [512], 2048: [512], 576: [1792, 1728, 1664]}
     # exact buckets from the SDXL training report as quickly searchable dictionaries.
+
+    reportResBase = [(1600, 640), (896, 1088), (896, 1152), (1536, 640), (832, 1152), (832, 1216), (1472, 704), (1408, 704), (768, 1280), (768, 1344), (704, 1344), (704, 1408), (704, 1472), (1344, 768), (1280, 768), (640, 1536), (640, 1600), (1216, 832), (2048, 512), (1984, 512), (1152, 832), (1152, 896), (1920, 512), (1856, 512), (576, 1664), (576, 1728), (576, 1792), (1088, 896), (1088, 960), (1024, 960), (1024, 1024), (512, 1856), (512, 1920), (512, 1984), (512, 2048), (1792, 576), (960, 1024), (960, 1088), (1728, 576), (1664, 576)]
+    reportResDict = {i[0]/i[1]: i for i in reportResBase}
+    getReportResIndex = sorted([i for i in reportResDict])
+
+    comfyResBase = [(1024, 1024), (1152, 896), (896, 1152), (1216, 832), (832, 1216), (1344, 768), (768, 1344), (1536, 640), (640, 1536)]
+    comfyResDict = {i[0]/i[1]: i for i in comfyResBase}
+    getComfyResIndex = sorted([i for i in comfyResDict])
+    # exact buckets recommended by Comfy—not as many of these! Must be that these had the most training data and produce the best results.
+
+
+
+    
     
     @classmethod
     def INPUT_TYPES(s):
@@ -68,7 +81,11 @@ class sizing_node:
             "optional":{
                 "verbose": (["disabled", "basic", "full"],),
                 "fit_aspect_to_bucket": (["disabled", "enabled"],),
-                "strict_bucketing": (["enabled", "disabled"],)
+                "strict_bucketing": (["SDXL Report", "Comfy", "disabled"],),
+                "extra_args": ("STRING", {
+                    "multiline": True,
+                    "default": ""
+                    })
 
             }
         }
@@ -100,6 +117,34 @@ class sizing_node:
             return (int(w), int(h))
         else:
             return int(striptext)
+
+    def getRecommendedRes(self, aspect, mode = "Report"):
+        print(f"getRecommendedRes invoked with variables {aspect} and {mode}")
+        getIndex = None
+        resDict = None
+        if mode == "Comfy":
+            getIndex = self.getComfyResIndex
+            resDict = self.comfyResDict
+        elif mode == "Report":
+            getIndex = self.getReportResIndex
+            resDict = self.reportResDict
+
+
+        # This will return the closest valid resolution.
+        c = 0
+        for i in getIndex:
+            if i > aspect:
+                if abs(i-aspect) < abs(c-aspect):
+                    return resDict[i]
+                else:
+                    if c != 0:
+                        return resDict[c]
+                    else:
+                        return resDict[c]
+            c = i
+
+        # if none were < aspect, return the last one
+        return resDict[getIndex[-1]]
 
     def make_64(self, num):
         num = int(num)
@@ -140,47 +185,62 @@ class sizing_node:
                 return (i, int(round(i/decimal)))
 
 
-    def match_buckets(self, target_width, target_height, prefer, verbose = False):
+    def get_sizes(self, native_res, aspect, original_res, crop_extra = 0.0, downscale_effect = 1.0, verbose = "disabled", fit_aspect_to_bucket = "disabled", strict_bucketing = "SDXL Report", extra_args = ""):
         
-        if target_height in self.w_to_h[target_width]:
-            if verbose: print(f"\nsizing_node: calculated resolution of {target_width}x{target_height} matches original training buckets. (strict_bucketing)")
-            return (target_width, target_height)
+        nudge = ("w", 0.0)
+        nocrop = False
+        override_aspect = False
+        bucketMode = "Comfy" if strict_bucketing == "Comfy" else "Report"
 
-        islow = False
+        if extra_args != "":
 
-        if min(target_height, *self.w_to_h[target_width]) == target_height: islow = True
+            try:
+                splitargs = extra_args.split(" ")
+                args = []
+                for i in splitargs:
+                    if i[:2] == "--":
+                        args.append((i[2:],))
+                    elif i != "":
+                        args[-1] += (i, )
 
+                # make it into a quickly searchable dictionary (in case I add lots of optional arguments... lol)
+                args = {i[0]: i[1:] if len(i) > 1 else None for i in args}
 
+                # check each argument individually. could do a dict of functions for speed but there aren't many arguments.
+                if "nocrop" in args: nocrop = True
+                if "nudge" in args:
+                    nudge = (args["nudge"][0], float(args["nudge"][1]))
+                if "randomaspect" in args:
+                    from random import random
+                    aspect_limits = [0.25, 4.0]
 
-        if target_width % 64 == 0 and target_height % 64 == 0:
+                    # if additonal arguments are given, use them as limits
+                    try:
+                        aspect_limits = list(args["randomaspect"])
+                    except:
+                        pass
 
-            # arbitrarily large/small numbers added in case there is only one number in the list, which min/max would not accept as iterable.
+                    r = ()
 
-            if prefer == "widen aspect":
-                if islow:
-                    rheight = target_height
-                    rwidth = min(*self.h_to_w[target_height], 20000)
-                else:
-                    rwidth = target_width
-                    rheight = max(*self.w_to_h[target_width], 0)
-            else:
-                if islow:
-                    rwidth = target_width
-                    rheight = min(*self.w_to_h[target_width], 20000)
-                else:
-                    rwidth = max(*self.h_to_w[target_height], 0)
-                    rheight = target_height
+                    #parse the inputs to floats
+                    for i in aspect_limits:
+                        corrected = ""
+                        split = False
+                        for c in i:
+                            if c in {":", "x", "*", "/"}:
+                                corrected += "*"
+                                split = True
+                            else:
+                                corrected += c
+                        if split:
+                            x, y = corrected.split("*")
+                            r += (float(x)/float(y),)
+                        else:
+                            r += (float(corrected), )
+                    override_aspect = random()*(r[1]-r[0])+r[0]
 
-
-        else:
-            raise ValueError(f"Dimensions of {target_width}, {target_height} are not divisible by 64.")
-
-        if verbose: print(f"\nsizing_node: calculated resolution of {target_width}x{target_height} not found in original training buckets. (strict_bucketing)\nAdjusted to {rwidth}x{rheight}.")
-
-        return (rwidth, rheight)
-
-
-    def get_sizes(self, native_res, aspect, original_res, crop_extra = 0.0, downscale_effect = 1.0, verbose = "disabled", fit_aspect_to_bucket = "disabled", strict_bucketing = "enabled"):
+            except:
+                print("sizing_node: Invalid extra arguments, skipping.")
 
         # initialize the verbose variables for reporting
         v_aspect = None
@@ -189,9 +249,7 @@ class sizing_node:
         v_postscale = None
         v_downscale = None
         v = verbose == "full"
-        bucket = False
-        if strict_bucketing == "enabled":
-            bucket = True
+        bucket = False if strict_bucketing == "disabled" else True
 
 
         # turn these string inputs into tuples, ints, or floats
@@ -210,17 +268,22 @@ class sizing_node:
             native_res = int(native_res * 1024)
 
 
+        # if aspect is specified as random, then override it.
+        if override_aspect:
+            aspect = override_aspect
+
         # parse the aspect input -> float
-        if isinstance(aspect, tuple):
-            if v: v_aspect = aspect
-            aspect = aspect[0]/aspect[1]
-        elif aspect == -1 and isinstance(aspect, int):
-            if isinstance(original_res, tuple):
-                aspect = original_res[0]/original_res[1]
-            else:
+        else:
+            if isinstance(aspect, tuple):
+                if v: v_aspect = aspect
+                aspect = aspect[0]/aspect[1]
+            elif aspect == -1 and isinstance(aspect, int):
+                if isinstance(original_res, tuple):
+                    aspect = original_res[0]/original_res[1]
+                else:
+                    aspect = 1.0
+            elif aspect <= 0:
                 aspect = 1.0
-        elif aspect <= 0:
-            aspect = 1.0
 
         if not 4.0 >= aspect >= 0.25:
             bucket = False
@@ -229,21 +292,23 @@ class sizing_node:
             bucket = False
             if v: print("\nsizing_node: strict_bucketing disabled (native_res != 1024)")
         
-        if v:
-            v_aspect = self.find_fraction(aspect)
 
         # match the buckets
-        c = (native_res**2 / aspect)**(1/2)
-        target_width = self.make_64(c * aspect)
-        target_height = self.make_64(c)
-
-        if bucket:
+        target_width, target_height = None, None
+        if not bucket:
+            c = (native_res**2 / aspect)**(1/2)
+            target_width = self.make_64(c * aspect)
+            target_height = self.make_64(c)
+        else:
             # fit exactly to the actual training buckets, not to a theoretical training bucket
-            target_width, target_height = self.match_buckets(target_width, target_height, prefer = "widen aspect", verbose = v)
+            target_width, target_height = self.getRecommendedRes(aspect, mode = bucketMode)
 
         if fit_aspect_to_bucket == "enabled":
-            aspect = target_width/target_height   # adjust aspect to match these multiples of 64
+            aspect = target_width/target_height   # adjust aspect to match the generation size
 
+
+        if v:
+            v_aspect = self.find_fraction(aspect)
 
         # parse the original resolution input -> width, height
         if isinstance(original_res, float):
@@ -258,26 +323,41 @@ class sizing_node:
                 width = int(original_res * aspect)
                 height = original_res
 
+        # optional "nudge" argument overrides width or height to give a desired amount of 'plausible' cropping.
+        if nudge[1] != 0.0:
+            if nudge[0] == "w":
+                width = int(round((height/target_height) * (target_width + nudge[1]*32)))
+            else:
+                height = int(round((width/target_width) * (target_height + nudge[1]*32)))
 
-        if width/height == target_width/target_height:
+
+        # calculate cropping. This also calculates and stores values for verbose reporting on how the cropping was done after scaling in the 'hypothetical' training image.
+        if nocrop:
+            # optional extra argument to force crop sizes to 0, if this is preferred. This may be useful for A/B testing.
             if v: v_crops, v_postscale = (0, 0), (target_width, target_height, target_width/width, True)
-            crop_w = int(target_width*crop_extra)//2
-            crop_h = int(target_height*crop_extra)//2
-            downscale = (1-crop_extra) * width / target_width
-        elif width/height > target_width/target_height:
-            x0 = int(width * target_height/height)
-            x1 = x0 - target_width
-            if v: v_crops, v_postscale = (x1, 0), (x0, target_height, target_height/height, False)
-            crop_w = int(x1 + target_width * crop_extra)//2
-            crop_h = int(target_height*crop_extra)//2
-            downscale = (1-crop_extra) * height / target_height
+            crop_w = 0
+            crop_h = 0
+            downscale = min(width/target_width, height/target_height)
         else:
-            x0 = int(height * target_width/width)
-            x1 = x0 - target_height
-            if v: v_crops, v_postscale = (0, x1), (target_width, x0, target_width/width, False)
-            crop_w = int(target_width*crop_extra)//2
-            crop_h = int(x1 + target_height * crop_extra)//2
-            downscale = (1-crop_extra) * width/target_width
+            if width/height == target_width/target_height:
+                if v: v_crops, v_postscale = (0, 0), (target_width, target_height, target_width/width, True)
+                crop_w = int(target_width*crop_extra)//2
+                crop_h = int(target_height*crop_extra)//2
+                downscale = (1-crop_extra) * width / target_width
+            elif width/height > target_width/target_height:
+                x0 = int(width * target_height/height)
+                x1 = x0 - target_width
+                if v: v_crops, v_postscale = (x1, 0), (x0, target_height, target_height/height, False)
+                crop_w = int(x1 + target_width * crop_extra)//2
+                crop_h = int(target_height*crop_extra)//2
+                downscale = (1-crop_extra) * height / target_height
+            else:
+                x0 = int(height * target_width/width)
+                x1 = x0 - target_height
+                if v: v_crops, v_postscale = (0, x1), (target_width, x0, target_width/width, False)
+                crop_w = int(target_width*crop_extra)//2
+                crop_h = int(x1 + target_height * crop_extra)//2
+                downscale = (1-crop_extra) * width/target_width
 
 
         if v: v_crops_extra = (int(target_width*(crop_extra))//2, int(target_height*(crop_extra))//2)
