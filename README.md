@@ -65,6 +65,10 @@ The string input at the bottom of the advanced node accepts some further argumen
 
 More arguments may be added in future.
 
+### Input conversions
+
+There are a couple of conversion nodes. If for any reason you wanted to feed inputs to the sizing node, e.g. as part of an img2img workflow, these simple nodes make that possible. Normally I find the parsed string inputs convenient but they become problematic when you want to get the value from another node.
+
 ### Postscript
 
 If any of this is flat-out wrong, if I've misread the docs or just typed something in wrong or terribly misused Python in some basic way, please let me know. I've used this for a while with the verbose reporting turned on to check my numbers, so I'm pretty sure it's working for what I'm doing at least, but it might be broken in some way I haven't tested, or I might be missing something by not looking closely enough.

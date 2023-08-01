@@ -1,6 +1,6 @@
 class sizing_node:
     ''' This node takes native resolution, aspect ratio, and original resolution. It uses these to 
-        calculate and output the latent dimensions in an appropriate bucketed resolution with 64-multiples 
+        calculate and output the latent generator dimensions in an appropriate bucketed resolution with 64-multiples 
         for each side (which double as the target_height/_width), the resolution for the width and height
         conditioning inputs (representing a hypothetic "original" image in the training data), and the
         crop_w and crop_h conditioning inputs, which are determined by the difference between the model
@@ -186,6 +186,7 @@ class sizing_node:
 
     def get_sizes(self, native_res, aspect, original_res, crop_extra = 0.0, downscale_effect = 1.0, verbose = "disabled", fit_aspect_to_bucket = "disabled", strict_bucketing = "SDXL Report", extra_args = ""):
         
+        sharp = False
         nudge = ("w", 0.0)
         nocrop = False
         override_aspect = False
@@ -209,6 +210,12 @@ class sizing_node:
                 if "nocrop" in args: nocrop = True
                 if "nudge" in args:
                     nudge = (args["nudge"][0], float(args["nudge"][1]))
+                if "sharp" in args:
+                    sharp = 1.33
+                if "extrasharp" in args:
+                    sharp = 1.67
+                if "supersharp" in args:
+                    sharp = 2.0
                 if "randomaspect" in args:
                     from random import random
                     aspect_limits = [0.25, 4.0]
@@ -358,6 +365,8 @@ class sizing_node:
                 crop_h = int(x1 + target_height * crop_extra)//2
                 downscale = (1-crop_extra) * width/target_width
 
+        if sharp:
+            width, height = int(width*sharp), int(height*sharp)
 
         if v: v_crops_extra = (int(target_width*(crop_extra))//2, int(target_height*(crop_extra))//2)
 
@@ -458,13 +467,70 @@ class sizing_node_basic(sizing_node):
             }
         }
 
+# The following functions are for converting image dimensions into string inputs for the main node. This might sometimes be desirable for 
+class get_aspect_from_ints:
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "width": ("INT", {
+                    "default": 0,
+                    "max": 100000,
+                    "min": 0,
+                    "step": 1
+                }),
+                "height": ("INT", {
+                    "default": 0,
+                    "max": 100000,
+                    "min": 0,
+                    "step": 1
+                }),
+                
+            }
+        }
+
+    RETURN_TYPES = ("STRING", )   
+    RETURN_NAMES = ("input_str", )
+
+    FUNCTION = "to_string"
+
+    CATEGORY = "sizing/input conversions"
+
+    def to_string(self, width, height):
+        return (f"{width}x{height}", )
+
+class get_aspect_from_image(get_aspect_from_ints):
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE", )
+                
+            }
+        }
+
+    FUNCTION = "get_dimensions_to_string"
+
+    def get_dimensions_to_string(self, image):
+        width, height = image.shape[2], image.shape[1]
+        return self.to_string(width, height)
+
+
+
+
 # in case this gets installed as just the .py file into the custom nodes folder, I've added these to this file as well.
 NODE_CLASS_MAPPINGS = {
     "sizing_node": sizing_node,
-    "sizing_node_basic": sizing_node_basic
+    "sizing_node_basic": sizing_node_basic,
+    "get_aspect_from_ints": get_aspect_from_ints,
+    "get_aspect_from_image": get_aspect_from_image
 
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "sizing_node": "sizing for SDXL (advanced)",
-    "sizing_node_basic": "sizing for SDXL"
+    "sizing_node_basic": "sizing for SDXL",
+    "get_aspect_from_ints": "width, height -> \'WIDTHxHEIGHT\'",
+    "get_aspect_from_image": "IMAGE -> \'WIDTHxHEIGHT\'"
 }
