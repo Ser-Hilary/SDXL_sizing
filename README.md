@@ -62,12 +62,17 @@ The string input at the bottom of the advanced node accepts some further argumen
 - **--nudge w 0.8** will yield an original resolution which would have 80% of the maximum plausible cropping on the width dimension. This is for testing resolutions at the limits of plausible crop_w/crop_h values.
 - **--randomaspect** will give a randomized aspect ratio, rather than a standard one. Unfortunately this will not be randomized with each generation, I'd have to figure out how to make ComfyUI invoke the node once per batch. This optionally accepts two arguments, e.g. **--randomaspect 2x3 4x2**, for minimum and maximum. If not given it will default to 0.25 and 4.0. Inputs can be given as 1/2, 1:2, 0.5, 1x2, or 1*2.
 - **--nocrop** sets crop_w and crop_h outputs to 0. This is less work than disconnecting the crop outputs, and may be useful for A/B testing whether 'plausible' crop values produce worse images than leaving them 0.
+- **--sharp**, **-extrasharp** and **--supersharp** scale your width/height conditionings by 133%, 167%, and 200%, while keeping the downscale output the same. So if you set original width/height to 700x700 and add --supersharp, you will generate at 1024x1024 with 1400x1400 width/height conditionings and then downscale to 700x700. This is kind of an 'experimental' thing, but could be useful when e.g. you're feeding your image dimensions for img2img to the int input node and want to generate with a larger width/height conditioning than your resolution. 
 
 More arguments may be added in future.
 
+### The int/float node
+
+I'm trying to figure out the best way to set up these nodes for img2img. I'm not entirely sure what that should be. But for now I've at least made a node which can take values for inputs properly. There is still some flexibility, e.g. you can set a value for native res or you can give the width/height of the input image as the fixed gen sizes and that will override the native res setting. And some fields can take a -1 to be chosen automatically. aspect at -1.0, for example, will be set to match the gen sizes if they are both >0, otherwise it will be taken from the 'original' sizes. (I admit the word 'original' gets a bit ambiguous in the context of img2img. It means here, as elsewhere, the 'theoretical training image' which is a part of the conditioning.) Original width and height can also be set to -1. If one is set and the other is -1, the -1 will be set to match the aspect and the other value. If both are -1 they will be set the same as the target resolution.
+
 ### Input conversions
 
-There are a couple of conversion nodes. If for any reason you wanted to feed inputs to the sizing node, e.g. as part of an img2img workflow, these simple nodes make that possible. Normally I find the parsed string inputs convenient but they become problematic when you want to get the value from another node.
+There are a couple of conversion nodes. If for any reason you wanted to feed inputs to the regular sizing node, e.g. as part of an img2img workflow, these simple nodes make that possible. Normally I find the parsed string inputs convenient but they become problematic when you want to get the value from another node.
 
 ### Postscript
 

@@ -156,7 +156,7 @@ class sizing_node:
             how many decimal points you give it, to a maximum of 5. (Without a maximum this could get very slow.)
 
             Maybe this is adding some bloat but I think it's fun. It shouldn't get called if you don't choose to 
-            turn on "verbose". The absolute worst case 
+            turn on "verbose".
         '''
         decimal = round(decimal, 5)
 
@@ -467,6 +467,120 @@ class sizing_node_basic(sizing_node):
             }
         }
 
+class sizing_node_unparsed(sizing_node):
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "gen_size_w": ("INT", {
+                    "min": -1,
+                    "max": 100000,
+                    "default": -1,
+                    "step": 1
+                }),
+                "gen_size_h": ("INT", {
+                    "min": -1,
+                    "max": 100000,
+                    "default": -1,
+                    "step": 1
+                }),
+                "native_res": ("INT", {
+                    "min": 0,
+                    "max": 100000,
+                    "default": 1024,
+                    "step": 1
+                }),
+                "aspect": ("FLOAT", {
+                    "min": -1.0,
+                    "max": 20.0,
+                    "default": 1.0,
+                    "step": 0.01
+                }),
+                "original_res_w": ("INT", {
+                    "min": -1,
+                    "max": 100000,
+                    "default": 1024,
+                    "step": 1
+                }),
+                "original_res_h": ("INT", {
+                    "min": -1,
+                    "max": 100000,
+                    "default": 1024,
+                    "step": 1
+                }),
+                "crop_extra": ("FLOAT", {
+                    "default": 0.0,
+                    "max": 1.0,
+                    "min": 0.0,
+                    "step": 0.001
+                }),
+                "downscale_effect": ("FLOAT", {
+                    "default": 0.0,
+                    "max": 1.0,
+                    "min": 0.0,
+                    "step": 0.001
+                })
+                
+            },
+            "optional":{
+                "verbose": (["disabled", "basic", "full"],),
+                "fit_aspect_to_bucket": (["disabled", "enabled"],),
+                "strict_bucketing": (["SDXL Report", "Comfy", "disabled"],),
+                "extra_args": ("STRING", {
+                    "multiline": True,
+                    "default": ""
+                    })
+
+            }
+        }
+
+    FUNCTION = "get_sizes_unparsed"
+
+    def get_sizes_unparsed(self, gen_size_w, gen_size_h, native_res, aspect, original_res_w, original_res_h, crop_extra = 0.0, downscale_effect = 1.0, verbose = "disabled", fit_aspect_to_bucket = "disabled", strict_bucketing = "SDXL Report", extra_args = ""):
+        original_res = None
+        if gen_size_w > 0 and gen_size_h > 0:
+            # if the gen sizes are too far below the native resolution to be appropriate for generation
+            if (gen_size_w)*(gen_size_h) < 0.9*native_res**2:
+                native_res = str(native_res)
+            else:
+                native_res = f"{gen_size_w}x{gen_size_h}"
+            if aspect == -1: aspect = gen_size_w/gen_size_h
+        else:
+            native_res = str(native_res)
+
+        if aspect != -1:
+            if original_res_h == -1 and original_res_w == -1:
+                if gen_size_w > 0 and gen_size_h > 0:
+                    original_res = f"{gen_size_w}x{gen_size_h}"
+                else:
+                    original_res = "1.0"
+            elif original_res_w == -1:
+                original_res = f"{int(aspect * original_res_h)}x{original_res_h}"
+            elif original_res_h == -1:
+                original_res = f"{original_res_w}x{int(original_res_w / aspect)}"
+            else:
+                original_res = f"{original_res_w}x{original_res_h}"
+        else:
+            if original_res_h == -1 and original_res_w == -1:
+                    original_res = "1.0"
+            elif original_res_w == -1:
+                original_res = f"{original_res_h}x{original_res_h}"
+            elif original_res_h == -1:
+                original_res = f"{original_res_w}x{original_res_w}"
+            else:
+                original_res = f"{original_res_w}x{original_res_h}"
+
+            aspect = 1.0 if original_res_h == -1 or original_res_w == -1 else original_res_w/original_res_h
+
+
+        return self.get_sizes(native_res, str(aspect), original_res, crop_extra, downscale_effect, verbose, fit_aspect_to_bucket, strict_bucketing, extra_args)
+
+
+
 # The following functions are for converting image dimensions into string inputs for the main node. This might sometimes be desirable for 
 class get_aspect_from_ints:
 
@@ -490,8 +604,8 @@ class get_aspect_from_ints:
             }
         }
 
-    RETURN_TYPES = ("STRING", )   
-    RETURN_NAMES = ("input_str", )
+    RETURN_TYPES = ("STRING",)   
+    RETURN_NAMES = ("input_str",)
 
     FUNCTION = "to_string"
 
@@ -500,7 +614,7 @@ class get_aspect_from_ints:
     def to_string(self, width, height):
         return (f"{width}x{height}", )
 
-class get_aspect_from_image(get_aspect_from_ints):
+class get_aspect_from_image():
 
     @classmethod
     def INPUT_TYPES(s):
@@ -511,11 +625,18 @@ class get_aspect_from_image(get_aspect_from_ints):
             }
         }
 
-    FUNCTION = "get_dimensions_to_string"
+    RETURN_TYPES = ("STRING", "INT", "INT")   
+    RETURN_NAMES = ("input_str", "int_width", "int_height")
 
-    def get_dimensions_to_string(self, image):
+    FUNCTION = "get_dimensions"
+
+    CATEGORY = "sizing/input conversions"
+
+    def get_dimensions(self, image):
         width, height = image.shape[2], image.shape[1]
-        return self.to_string(width, height)
+        return (f"{width}x{height}", width, height)
+
+
 
 
 
@@ -524,6 +645,7 @@ class get_aspect_from_image(get_aspect_from_ints):
 NODE_CLASS_MAPPINGS = {
     "sizing_node": sizing_node,
     "sizing_node_basic": sizing_node_basic,
+    "sizing_node_unparsed": sizing_node_unparsed,
     "get_aspect_from_ints": get_aspect_from_ints,
     "get_aspect_from_image": get_aspect_from_image
 
@@ -531,6 +653,7 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "sizing_node": "sizing for SDXL (advanced)",
     "sizing_node_basic": "sizing for SDXL",
+    "sizing_node_unparsed": "sizing for SDXL (int/float inputs)",
     "get_aspect_from_ints": "width, height -> \'WIDTHxHEIGHT\'",
     "get_aspect_from_image": "IMAGE -> \'WIDTHxHEIGHT\'"
 }
