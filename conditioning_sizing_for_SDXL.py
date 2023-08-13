@@ -191,7 +191,7 @@ class sizing_node:
         nocrop = False
         override_aspect = False
         bucketMode = "Comfy" if strict_bucketing == "Comfy" else "Report"
-        shortside = False
+        side = False
 
         if extra_args != "":
 
@@ -218,7 +218,10 @@ class sizing_node:
                 if "supersharp" in args:
                     sharp = 2.0
                 if "shortside" in args:
-                    shortside = True
+                    side = 1
+                elif "equivalent" in args:
+                    side = 2
+
                 if "randomaspect" in args:
                     from random import random
                     aspect_limits = [0.25, 4.0]
@@ -325,13 +328,17 @@ class sizing_node:
         elif isinstance(original_res, tuple):
             width, height = original_res
         else:
-            if shortside:
+            if side == 1:
                 if target_width > target_height:
                     width = int(original_res * aspect)
                     height = original_res
                 else:
                     width = original_res
                     height = int(original_res / aspect)
+            elif side == 2:
+                height = (original_res**2/aspect)**(1/2)
+                width = height*aspect
+                width, height = int(width), int(height)
             else:
                 if target_width > target_height:
                     width = original_res
