@@ -194,7 +194,7 @@ class sizing_node:
         nudge = ("w", 0.0)
         nocrop = False
         override_aspect = False
-        bucketMode = {"Comfy": "Comfy", "SDXL Report": "Report", "Smallest Buckets": "Small"}[strict_bucketing]
+        bucketMode = {"Comfy": "Comfy", "SDXL Report": "Report", "Smallest Buckets": "Small", "disabled": False}[strict_bucketing]
         side = False
 
         if extra_args != "":
