@@ -56,7 +56,7 @@ you can also enter -1 to get the aspect from the original resolution, if it is g
 
 **fit_aspect_to_bucket** adjusts your aspect ratio after determining the bucketed resolution to match that resolution so that crop_w and crop_h should end up either 0 or very nearly 0.
 
-**strict_bucketing** matches your gen size to one of the bucket sizes explicitly given in the SDXL report (or to those recommended by the ComfyUI developer). Most inputs will match one of the buckets given in the report anyway, because of how this node calculates the dimensions for the latent. But there are a few sizes that my node will output which aren't explicitly listed as bucketed training resolutions, so in those cases this will pick a close training bucket instead.
+**strict_bucketing** matches your gen size to one of the bucket sizes explicitly given in the SDXL report (or to those recommended by the ComfyUI developer). Most inputs will match one of the buckets given in the report anyway, because of how this node calculates the dimensions for the latent. But there are a few sizes that my node will output which aren't explicitly listed as bucketed training resolutions, so in those cases this will pick a close training bucket instead. There is also a "smallest buckets" option which only picks one of the handful of bucket sizes which have the fewest pixels.
 
 The string input at the bottom of the advanced node accepts some further arguments which are too niche to deserve a full input of their own. Some examples:
 - **--shortside** changes the behavior of an int in the original_res input so that the int is given to the short side of the hypothetical original, not the long.

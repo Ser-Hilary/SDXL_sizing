@@ -31,13 +31,13 @@ class sizing_node:
             - "2.0" - returns dimensions double those of the generation. So if you're generating at 1024x1024,
                 this will return 2048x2048.
     '''
-    w_to_h = {1600: [640], 896: [1088, 1152], 1536: [640], 832: [1152, 1216], 1472: [704], 1408: [704], 768: [1280, 1344], 704: [1344, 1408, 1472], 1344: [768], 1280: [768], 640: [1536, 1600], 1216: [832], 2048: [512], 1984: [512], 1152: [832, 896], 1920: [512], 1856: [512], 576: [1664, 1728, 1792], 1088: [896, 960], 1024: [960, 1024], 512: [1856, 1920, 1984, 2048], 1792: [576], 960: [1024, 1088], 1728: [576], 1664: [576]}
-    h_to_w = {640: [1600, 1536], 1088: [896, 960], 1152: [896, 832], 1216: [832], 704: [1472, 1408], 1280: [768], 1344: [768, 704], 1408: [704], 1472: [704], 768: [1344, 1280], 1536: [640], 1600: [640], 832: [1216, 1152], 512: [2048, 1984, 1920, 1856], 896: [1152, 1088], 1664: [576], 1728: [576], 1792: [576], 960: [1088, 1024], 1024: [1024, 960], 1856: [512], 1920: [512], 1984: [512], 2048: [512], 576: [1792, 1728, 1664]}
-    # exact buckets from the SDXL training report as quickly searchable dictionaries.
-
     reportResBase = [(1600, 640), (896, 1088), (896, 1152), (1536, 640), (832, 1152), (832, 1216), (1472, 704), (1408, 704), (768, 1280), (768, 1344), (704, 1344), (704, 1408), (704, 1472), (1344, 768), (1280, 768), (640, 1536), (640, 1600), (1216, 832), (2048, 512), (1984, 512), (1152, 832), (1152, 896), (1920, 512), (1856, 512), (576, 1664), (576, 1728), (576, 1792), (1088, 896), (1088, 960), (1024, 960), (1024, 1024), (512, 1856), (512, 1920), (512, 1984), (512, 2048), (1792, 576), (960, 1024), (960, 1088), (1728, 576), (1664, 576)]
     reportResDict = {i[0]/i[1]: i for i in reportResBase}
     getReportResIndex = sorted([i for i in reportResDict])
+
+    smallResBase = [(896, 1088), (832, 1152), (704, 1344), (1152, 832), (1856, 512), (576, 1664), (1088, 896), (512, 1856), (1664, 576)]
+    smallResDict = {i[0]/i[1]: i for i in smallResBase}
+    getSmallResIndex = sorted([i for i in smallResDict])
 
     comfyResBase = [(1024, 1024), (1152, 896), (896, 1152), (1216, 832), (832, 1216), (1344, 768), (768, 1344), (1536, 640), (640, 1536)]
     comfyResDict = {i[0]/i[1]: i for i in comfyResBase}
@@ -81,7 +81,7 @@ class sizing_node:
             "optional":{
                 "verbose": (["disabled", "basic", "full"],),
                 "fit_aspect_to_bucket": (["disabled", "enabled"],),
-                "strict_bucketing": (["SDXL Report", "Comfy", "disabled"],),
+                "strict_bucketing": (["SDXL Report", "Comfy", "Smallest Buckets", "disabled"],),
                 "extra_args": ("STRING", {
                     "multiline": True,
                     "default": ""
@@ -127,6 +127,10 @@ class sizing_node:
         elif mode == "Report":
             getIndex = self.getReportResIndex
             resDict = self.reportResDict
+        elif mode == "Small":
+            getIndex = self.getSmallResIndex
+            resDict = self.smallResDict
+
 
 
         # This will return the closest valid resolution.
@@ -190,7 +194,7 @@ class sizing_node:
         nudge = ("w", 0.0)
         nocrop = False
         override_aspect = False
-        bucketMode = "Comfy" if strict_bucketing == "Comfy" else "Report"
+        bucketMode = {"Comfy": "Comfy", "SDXL Report": "Report", "Smallest Buckets": "Small"}[strict_bucketing]
         side = False
 
         if extra_args != "":
